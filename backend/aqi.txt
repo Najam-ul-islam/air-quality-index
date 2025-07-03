@@ -1,0 +1,17 @@
+void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  float PM25 = analogRead(A0);  // Replace with real sensor read
+  float PM10 = analogRead(A1);
+  float CO = analogRead(A2);
+  // ... more sensors
+
+  // Send CSV over serial
+  Serial.print(PM25); Serial.print(",");
+  Serial.print(PM10); Serial.print(",");
+  Serial.print(CO); Serial.println();
+  
+  delay(2000); // 2 seconds
+}
