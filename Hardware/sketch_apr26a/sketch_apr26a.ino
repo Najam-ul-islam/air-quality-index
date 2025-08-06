@@ -79,8 +79,8 @@ void setup() {
 
   // Calibrate MQ135 (optional: run in clean air)
   Ro = mq135.getResistance() / 3.6; // Default for CO2
-  Serial.print("Calibrated Ro: ");
-  Serial.println(Ro);
+  // Serial.print("Calibrated Ro: ");
+  // Serial.println(Ro);
 
   lcd.clear();
   sampleStartTime = millis();
@@ -214,7 +214,7 @@ void sendSensorData(float temp, float hum, float co, float nh3, bool dhtError) {
   doc["dht_error"] = dhtError;
 
   serializeJson(doc, Serial);
-  Serial.println();
+  // Serial.println();
 }
 
 // Non-flickering LCD updates

@@ -15,7 +15,6 @@ MODEL_PATH = "saved_model/aqi_model.pkl"
 # SERIAL_PORT = "/dev/ttyUSB0"
 SERIAL_PORT = "COM4"
 BAUD_RATE = 115200
-# REQUIRED_FEATURES = ["PM2.5", "PM10", "NO", "NO2", "NH3", "CO", "SO2", "O3"]
 REQUIRED_FEATURES = ["PM2.5", "PM10", "NH3", "CO"]
 
 # Global variables
@@ -78,10 +77,6 @@ def validate_sensor_data(data: dict) -> bool:
         "PM10": (0, 1000),
         "CO": (0, 1000),
         "NH3": (0, 500),
-        # "NO": (0, 10),
-        # "NO2": (0, 10),
-        # "SO2": (0, 500),
-        # "O3": (0, 500),
         "temp": (-40, 85),  # Optional display params
         "hum": (0, 100),  # Optional display params
     }
@@ -95,15 +90,48 @@ def validate_sensor_data(data: dict) -> bool:
     return True
 
 
+# def read_arduino_data() -> Optional[dict]:
+#     """Read and parse sensor data with retries"""
+#     if not ser:
+#         return None
+
+#     try:
+#         line = ser.readline().decode("utf-8").strip()
+#         print(f"📡 Raw data: {line}")
+
+#         data = json.loads(line)
+
+#         # Convert Arduino's PM25 key to PM2.5
+#         if "PM25" in data:
+#             data["PM2.5"] = data.pop("PM25")
+
+#         if validate_sensor_data(data):
+#             return data
+
+#     except json.JSONDecodeError:
+#         print("⚠️ Invalid JSON format")
+#     except KeyError as e:
+#         print(f"⚠️ Missing required field: {e}")
+#     except Exception as e:
+#         print(f"⚠️ Error reading data: {e}")
+
+#     return None
+
 def read_arduino_data() -> Optional[dict]:
-    """Read and parse sensor data with retries"""
+    """Read and parse JSON data from Arduino"""
     if not ser:
         return None
 
     try:
-        line = ser.readline().decode("utf-8").strip()
+        # Read a line from serial
+        line = ser.readline().decode("utf-8", errors="ignore").strip()
+        
+        if not line:
+            return None
+            
         print(f"📡 Raw data: {line}")
 
+        # Try parsing the JSON data
         data = json.loads(line)
 
         # Convert Arduino's PM25 key to PM2.5
@@ -112,16 +140,17 @@ def read_arduino_data() -> Optional[dict]:
 
         if validate_sensor_data(data):
             return data
+        else:
+            print("⚠️ Sensor data validation failed")
 
     except json.JSONDecodeError:
-        print("⚠️ Invalid JSON format")
+        print("⚠️ JSON decoding failed:", line)
     except KeyError as e:
         print(f"⚠️ Missing required field: {e}")
     except Exception as e:
-        print(f"⚠️ Error reading data: {e}")
+        print(f"⚠️ Unexpected error: {e}")
 
     return None
-
 
 @app.get("/api/health")
 async def health_check():
@@ -137,7 +166,41 @@ async def get_aqi_prediction():
     sensor_data = read_arduino_data()
 
     if not sensor_data:
-        raise HTTPException(status_code=500, detail="Failed to read sensor data")
+        # Return mock data for testing when Arduino is not connected
+        mock_data = {
+            "PM2.5": 25.0,
+            "PM10": 45.0,
+            "NH3": 2.5,
+            "CO": 1.2,
+            "temp": 24.5,
+            "hum": 65.0
+        }
+        
+        try:
+            # Prepare input for ML model (only required features)
+            input_data = {feature: mock_data[feature] for feature in REQUIRED_FEATURES}
+
+            # Create DataFrame with correct column order
+            input_df = pd.DataFrame([input_data], columns=REQUIRED_FEATURES)
+            
+            # Make prediction
+            if model is None:
+                raise HTTPException(status_code=500, detail="ML model not loaded")
+                
+            prediction = model.predict(input_df)[0]
+            aqi_status = get_aqi_status(prediction)
+
+            return {
+                "aqi": round(prediction, 2),
+                "status": aqi_status,
+                "sensor_data": {
+                    **input_data,
+                    "temp": mock_data.get("temp"),
+                    "hum": mock_data.get("hum"),
+                },
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Mock data prediction error: {str(e)}")
 
     try:
         # Prepare input for ML model (only required features)

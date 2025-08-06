@@ -1,0 +1,57 @@
+LCD to Arduino
+--------------
+LCD 	Arduino
+pins	pins
+---------------
+Vss 	Gnd
+Vcc	5v
+RS	7
+RW	Gnd
+EN	6
+D4	5
+D5	4
+D6	3
+D7	8
+A	5v
+K	Gnd
+----------------
+
+DHT11 to Arduino
+----------------
+DHT11	Arduino
+---------------
+Vcc	5v
+Data	2
+Gnd	Gnd
+
+
+----------------
+Dust Sensor to Arduino
+-----------------------
+
+Dust Sensor 	Arduino
+-------------------------------
+Vout1(control)	Do not connect
+Vout2(output)	10
+Vcc		5v
+Vout1(output)	9
+Gnd		Gnd
+-----------------------------
+
+MQ135 to Arduino
+------------------
+
+MQ135	Arduino
+------------------
+Vcc	5v
+Gnd	Gnd
+D0	Do not connect
+A0	A0
+--------------------		
+
+
+
+
+
+
+
